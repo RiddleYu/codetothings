@@ -3,7 +3,10 @@
 
 #include <Blinker.h>
 #include<Servo.h>
-
+#include <Arduino.h>
+#include <IRremoteESP8266.h>
+#include <IRrecv.h>
+#include <IRutils.h>
 
 char auth[] = "83ad02eb82ad";      //Blinker申请到的密钥
 char ssid[] = "Apple";             //设备将要连入的wifi（2.4GHz）的名称
@@ -11,6 +14,11 @@ char pswd[] = "2528184787";       //wifi密码
 
 bool oState = false;
 Servo servoA;
+const uint16_t kRecvPin = 14;
+
+IRrecv irrecv(kRecvPin);
+
+decode_results results;
 
 void doAction(const String & state) 
 {
@@ -95,9 +103,32 @@ void setup()
     
     BlinkerMIOT.attachPowerState(miotPowerState);
     BlinkerMIOT.attachQuery(miotQuery);
+    irrecv.enableIRIn();  // Start the receiver
+    while (!Serial)  // Wait for the serial connection to be establised.
+    delay(50);
+    Serial.println();
+    Serial.print("IRrecvDemo is now running and waiting for IR message on Pin ");
+    Serial.println(kRecvPin);
     doAction("off");
 }
 void loop()
-{
+{   
+  if (irrecv.decode(&results)) {
+    // print() & println() can't handle printing long longs. (uint64_t)
+    Serial.println(results.value);
+    irrecv.resume();  // Receive the next value
+  }
+  if(results.value==16726215)
+    {
+       doAction("off");
+   }
+  if(results.value==16718055)
+   {
+      doAction("on");
+   }
+    
+  results.value=0;
+  
+  delay(100);
     Blinker.run();
 }
